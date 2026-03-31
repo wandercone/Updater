@@ -1,4 +1,4 @@
-# Unraid-Sidegrade
+# Updater
 
 An unofficial Unraid OS updater. Paste a download URL, verify the checksum, reboot. Bypasses the official update flow and installs any OS version directly to the boot device.
 
