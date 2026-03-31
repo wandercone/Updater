@@ -1,12 +1,9 @@
          |-----handy-ruler------------------------------------------------------|
-my-plugin: my-plugin
-my-plugin:
-my-plugin: Sample slack-desc file
-my-plugin:
-my-plugin:
-my-plugin:
-my-plugin:
-my-plugin:
-my-plugin:
-my-plugin: https://github.com/my-user/my-plugin
-my-plugin:
+updater: updater
+updater:
+updater: An unofficial Unraid updater plugin.
+updater: Fetches a manual specified releases and installs is via the 
+updater: documented manual upgrade process.
+updater:
+updater: https://github.com/wandercone/Updater
+updater:

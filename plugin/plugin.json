@@ -1,9 +1,8 @@
 {
-    "name": "plugin-name",
-    "package_name": "my-plugin",
-    "author": "Your Name",
-    "min": "7.0.0",
-    "icon": "question",
-    "support": "https://...",
-    "launch": "Tools/Something"
+  "name": "updater",
+  "package_name": "updater",
+  "author": "wandercone",
+  "support": "https://github.com/wandercone/Updater/issues",
+  "launch": "Tools/Updater",
+  "icon": "cloud-download "
 }

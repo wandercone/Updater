@@ -1,0 +1,192 @@
+Menu="SystemInformation"
+Type="xmenu"
+Title="Updater"
+Icon="fa-cloud-download "
+Markdown="false"
+---
+<?php
+require_once "/usr/local/emhttp/plugins/dynamix/include/Helpers.php";
+
+$varIni    = parse_ini_file('/var/local/emhttp/var.ini') ?: [];
+$csrfToken = (string)($varIni['csrf_token'] ?? '');
+
+$currentVersion = (string)($varIni['version'] ?? '');
+if ($currentVersion === '' && file_exists('/etc/unraid-version')) {
+    $verIni         = parse_ini_file('/etc/unraid-version') ?: [];
+    $currentVersion = (string)($verIni['version'] ?? '');
+}
+if ($currentVersion === '') {
+    $currentVersion = 'Unknown';
+}
+?>
+
+<form id="updaterForm">
+<input type="hidden" id="updCsrfToken" value="<?= htmlspecialchars($csrfToken); ?>">
+
+<table class="unraid tablesorter"><thead><tr><td>Current Installation</td></tr></thead></table>
+<dl>
+  <dt>Unraid Version</dt>
+  <dd><?= htmlspecialchars($currentVersion); ?></dd>
+</dl>
+
+<table class="unraid tablesorter"><thead><tr><td>Update Details</td></tr></thead></table>
+<dl>
+  <dt>Download URL</dt>
+  <dd>
+    <input type="text" id="updateUrl" autocomplete="off" spellcheck="false" style="width:540px"
+           placeholder="https://stable.dl.unraid.net/...">
+    <span class="orange-text" style="margin-left:8px">
+      <a href="https://docs.unraid.net/unraid-os/download_list/" target="_blank">Version history</a>
+    </span>
+  </dd>
+</dl>
+<dl>
+  <dt>MD5 Checksum</dt>
+  <dd>
+    <input type="text" id="updateMd5" autocomplete="off" spellcheck="false" style="width:540px"
+           placeholder="32-character hex string (recommended)">
+  </dd>
+</dl>
+<dl>
+  <dt>&nbsp;</dt>
+  <dd>
+    <input type="button" id="installBtn" value="Download &amp; Install" onclick="startUpdate()">
+  </dd>
+</dl>
+
+<table class="unraid tablesorter"><thead><tr><td>Installation Log</td></tr></thead></table>
+<dl>
+  <dt>&nbsp;</dt>
+  <dd>
+    <pre id="updOutput" style="display:none; background:#111; padding:12px; border-radius:4px; overflow-y:auto; max-height:420px; font-size:12px; margin:0;"></pre>
+    <input type="button" id="rebootBtn" value="Reboot Now"
+           style="display:none; margin-top:8px;"
+           onclick="rebootNow()">
+  </dd>
+</dl>
+</form>
+
+<script>
+let pollTimer = null;
+let logOffset = 0;
+
+function csrf() {
+    return document.getElementById('updCsrfToken').value;
+}
+
+function showOutput(text, isSuccess) {
+    const el = document.getElementById('updOutput');
+    el.textContent   = text;
+    el.style.display = 'block';
+    el.style.color   = isSuccess ? '' : 'var(--red, #ef5350)';
+    el.scrollTop     = 0;
+}
+
+async function startUpdate() {
+    const url    = document.getElementById('updateUrl').value.trim();
+    const md5    = document.getElementById('updateMd5').value.trim();
+
+    if (!url) {
+        alert('Please enter a download URL.');
+        return;
+    }
+
+    if (!confirm(
+        'This will download and install the Unraid OS package onto /boot.\n\n' +
+        'Current boot files will be moved to /boot/previous as a backup.\n\n' +
+        'A reboot is required to complete the update.\n\nProceed?'
+    )) {
+        return;
+    }
+
+    const btn       = document.getElementById('installBtn');
+    const rebootBtn = document.getElementById('rebootBtn');
+
+    btn.disabled            = true;
+    logOffset               = 0;
+    rebootBtn.style.display = 'none';
+    showOutput('Starting\u2026', true);
+
+    try {
+        const resp = await fetch('/plugins/updater/include/ajax.php', {
+            method:  'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body:    new URLSearchParams({
+                action:     'start_update',
+                csrf_token: csrf(),
+                url:        url,
+                md5:        md5,
+            }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+            showOutput('Error: ' + data.message, false);
+            btn.disabled = false;
+            return;
+        }
+        pollTimer = setInterval(pollLog, 1500);
+    } catch (e) {
+        showOutput('Error: ' + e.message, false);
+        btn.disabled = false;
+    }
+}
+
+async function pollLog() {
+    try {
+        const resp = await fetch('/plugins/updater/include/ajax.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({
+                action:     'poll_log',
+                csrf_token: csrf(),
+                offset:     logOffset,
+            }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+            return;
+        }
+
+        if (data.content) {
+            const outEl      = document.getElementById('updOutput');
+            outEl.textContent += data.content;
+            outEl.scrollTop    = outEl.scrollHeight;
+            logOffset          = data.offset;
+        }
+
+        if (data.done) {
+            clearInterval(pollTimer);
+            document.getElementById('rebootBtn').style.display = 'inline-block';
+            document.getElementById('installBtn').disabled     = false;
+        } else if (data.failed) {
+            clearInterval(pollTimer);
+            document.getElementById('updOutput').style.color  = 'var(--red, #ef5350)';
+            document.getElementById('installBtn').disabled     = false;
+        }
+    } catch (e) {}
+}
+
+function rebootNow() {
+    if (!confirm('Reboot the system now?')) {
+        return;
+    }
+    const btn = document.getElementById('rebootBtn');
+    btn.disabled = true;
+    btn.value    = 'Rebooting\u2026';
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/webGui/include/Boot.php';
+
+    [['cmd', 'reboot'], ['csrf_token', csrf()]].forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = name;
+        input.value = value;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
