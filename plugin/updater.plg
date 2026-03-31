@@ -4,7 +4,7 @@
 <PLUGIN
   name="updater"
   author="wandercone"
-  version="2026.03.31"
+  version="2026.03.31.01"
   launch="Tools/Updater"
   pluginURL="https://raw.githubusercontent.com/wandercone/Updater/main/plugin/updater.plg"
   support="https://github.com/wandercone/Updater/issues"
@@ -16,6 +16,11 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.03.31.01
+
+- fix: harmonize csrf handling & fix output of log
+- chore: fix README.md project name
+
 ### 2026.03.31
 
 feat: initial upload
@@ -25,9 +30,9 @@ For older releases, see https://github.com/wandercone/Updater/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/updater/updater-2026.03.31-noarch-1.txz">
-<URL>https://github.com/wandercone/Updater/releases/download/2026.03.31/updater-2026.03.31-noarch-1.txz</URL>
-<SHA256>55db63ee8a84b3de39d63a7bfb487300ba4423f3c857e455dfdf332b8282a3d7</SHA256>
+<FILE Name="/boot/config/plugins/updater/updater-2026.03.31.01-noarch-1.txz">
+<URL>https://github.com/wandercone/Updater/releases/download/2026.03.31.01/updater-2026.03.31.01-noarch-1.txz</URL>
+<SHA256>639a5212d7344849bc9da963703649df6b20bae92c3c2881907faab53d6794d8</SHA256>
 </FILE>
 
 <!--
@@ -36,15 +41,15 @@ The 'install' script.
 <FILE Run="/bin/bash">
 <INLINE>
 <![CDATA[
-upgradepkg --install-new /boot/config/plugins/updater/updater-2026.03.31-noarch-1.txz
+upgradepkg --install-new /boot/config/plugins/updater/updater-2026.03.31.01-noarch-1.txz
 
 # cleanup old versions
-rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.03.31')
+rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.03.31.01')
 
 echo ""
 echo "----------------------------------------------------"
 echo " updater has been installed."
-echo " Version: 2026.03.31"
+echo " Version: 2026.03.31.01"
 echo "----------------------------------------------------"
 echo ""
 ]]>
