@@ -18,8 +18,7 @@
 
 ### 2026.03.31
 
-- chore: address php-cs-fixer comments
-- feat: initial upload
+feat: initial upload
 
 
 For older releases, see https://github.com/wandercone/Updater/releases
@@ -28,7 +27,7 @@ For older releases, see https://github.com/wandercone/Updater/releases
 
 <FILE Name="/boot/config/plugins/updater/updater-2026.03.31-noarch-1.txz">
 <URL>https://github.com/wandercone/Updater/releases/download/2026.03.31/updater-2026.03.31-noarch-1.txz</URL>
-<SHA256>5e497e5c409d6dd184f524b70287a430f2d222ac2888ddcf922af56e2968c2e2</SHA256>
+<SHA256>55db63ee8a84b3de39d63a7bfb487300ba4423f3c857e455dfdf332b8282a3d7</SHA256>
 </FILE>
 
 <!--
