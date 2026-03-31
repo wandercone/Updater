@@ -58,7 +58,7 @@ if ($currentVersion === '') {
 <dl>
   <dt>&nbsp;</dt>
   <dd>
-    <pre id="updOutput" style="display:none; background:#111; padding:12px; border-radius:4px; overflow-y:auto; max-height:420px; font-size:12px; margin:0;"></pre>
+    <pre id="updOutput" style="display:none; padding:12px; border:1px solid var(--border-color, #ccc); border-radius:4px; overflow-y:auto; max-height:420px; font-size:12px; margin:0;"></pre>
     <input type="button" id="rebootBtn" value="Reboot Now"
            style="display:none; margin-top:8px;"
            onclick="rebootNow()">
@@ -71,6 +71,7 @@ let pollTimer = null;
 let logOffset = 0;
 
 function csrf() {
+    try { if (parent.csrf_token) return parent.csrf_token; } catch(e) {}
     return document.getElementById('updCsrfToken').value;
 }
 
@@ -110,7 +111,10 @@ async function startUpdate() {
     try {
         const resp = await fetch('/plugins/updater/include/ajax.php', {
             method:  'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': csrf(),
+            },
             body:    new URLSearchParams({
                 action:     'start_update',
                 csrf_token: csrf(),
@@ -134,8 +138,11 @@ async function startUpdate() {
 async function pollLog() {
     try {
         const resp = await fetch('/plugins/updater/include/ajax.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            method:  'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': csrf(),
+            },
             body: new URLSearchParams({
                 action:     'poll_log',
                 csrf_token: csrf(),

@@ -22,10 +22,19 @@ function jsonResponse(bool $success, string $message): never
     exit;
 }
 
-$varIni    = parse_ini_file('/var/local/emhttp/var.ini') ?: [];
-$csrfToken = (string)($varIni['csrf_token'] ?? '');
+$csrfPost   = $_POST['csrf_token']          ?? '';
+$csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+$csrfCookie = $_COOKIE['csrf_token']        ?? '';
 
-if ($csrfToken === '' || ! hash_equals($csrfToken, postStr('csrf_token'))) {
+$csrfToken = $csrfHeader !== '' ? $csrfHeader : $csrfPost;
+
+if ($csrfToken === '') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'CSRF token invalid.']);
+    exit;
+}
+
+if ($csrfCookie !== '' && $csrfToken !== $csrfCookie) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'CSRF token invalid.']);
     exit;
