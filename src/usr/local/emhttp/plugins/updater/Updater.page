@@ -55,15 +55,12 @@ if ($currentVersion === '') {
 </dl>
 
 <table class="unraid tablesorter"><thead><tr><td>Installation Log</td></tr></thead></table>
-<dl>
-  <dt>&nbsp;</dt>
-  <dd>
-    <pre id="updOutput" style="display:none; padding:12px; border:1px solid var(--border-color, #ccc); border-radius:4px; overflow-y:auto; max-height:420px; font-size:12px; margin:0;"></pre>
-    <input type="button" id="rebootBtn" value="Reboot Now"
-           style="display:none; margin-top:8px;"
-           onclick="rebootNow()">
-  </dd>
-</dl>
+<div style="padding:12px 0;">
+  <pre id="updOutput" style="display:none; padding:12px; border:1px solid var(--border-color, #ccc); border-radius:4px; overflow-y:auto; max-height:420px; font-size:12px; margin:0;"></pre>
+  <input type="button" id="rebootBtn" value="Reboot Now"
+         style="display:none; margin-top:8px;"
+         onclick="rebootNow()">
+</div>
 </form>
 
 <script>
