@@ -4,7 +4,7 @@
 <PLUGIN
   name="updater"
   author="wandercone"
-  version="2026.05.10"
+  version="2026.05.29"
   launch="Tools/Updater"
   pluginURL="https://raw.githubusercontent.com/wandercone/Updater/main/plugin/updater.plg"
   support="https://github.com/wandercone/Updater/issues"
@@ -16,6 +16,10 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.05.29
+
+fix: just can't win with CSRF but this seems to work stable-ish
+
 ### 2026.05.10
 
 fix: correct installation log positioning on page
@@ -25,18 +29,14 @@ fix: correct installation log positioning on page
 - fix: harmonize csrf handling & fix output of log
 - chore: fix README.md project name
 
-### 2026.03.31
-
-feat: initial upload
-
 
 For older releases, see https://github.com/wandercone/Updater/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/updater/updater-2026.05.10-noarch-1.txz">
-<URL>https://github.com/wandercone/Updater/releases/download/2026.05.10/updater-2026.05.10-noarch-1.txz</URL>
-<SHA256>6a6aec56b2e21eada5f59176535225dfd7cee1025ae7116c0d641ca3dee6306c</SHA256>
+<FILE Name="/boot/config/plugins/updater/updater-2026.05.29-noarch-1.txz">
+<URL>https://github.com/wandercone/Updater/releases/download/2026.05.29/updater-2026.05.29-noarch-1.txz</URL>
+<SHA256>cdd20065745c3b07b2a61cc381d6009a3971b7c9f26c931455cf36334bf5266f</SHA256>
 </FILE>
 
 <!--
@@ -45,15 +45,15 @@ The 'install' script.
 <FILE Run="/bin/bash">
 <INLINE>
 <![CDATA[
-upgradepkg --install-new /boot/config/plugins/updater/updater-2026.05.10-noarch-1.txz
+upgradepkg --install-new /boot/config/plugins/updater/updater-2026.05.29-noarch-1.txz
 
 # cleanup old versions
-rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.05.10')
+rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.05.29')
 
 echo ""
 echo "----------------------------------------------------"
 echo " updater has been installed."
-echo " Version: 2026.05.10"
+echo " Version: 2026.05.29"
 echo "----------------------------------------------------"
 echo ""
 ]]>
