@@ -7,8 +7,7 @@ Markdown="false"
 <?php
 require_once "/usr/local/emhttp/plugins/dynamix/include/Helpers.php";
 
-$varIni    = parse_ini_file('/var/local/emhttp/var.ini') ?: [];
-$csrfToken = (string)($varIni['csrf_token'] ?? '');
+$varIni = parse_ini_file('/var/local/emhttp/var.ini') ?: [];
 
 $currentVersion = (string)($varIni['version'] ?? '');
 if ($currentVersion === '' && file_exists('/etc/unraid-version')) {
@@ -21,7 +20,6 @@ if ($currentVersion === '') {
 ?>
 
 <form id="updaterForm">
-<input type="hidden" id="updCsrfToken" value="<?= htmlspecialchars($csrfToken); ?>">
 
 <table class="unraid tablesorter"><thead><tr><td>Current Installation</td></tr></thead></table>
 <dl>
@@ -64,133 +62,137 @@ if ($currentVersion === '') {
 </form>
 
 <script>
+const CSRF_TOKEN = <?= json_encode($varIni['csrf_token'] ?? ''); ?>;
+
 let pollTimer = null;
 let logOffset = 0;
 
-function csrf() {
-    try { if (parent.csrf_token) return parent.csrf_token; } catch(e) {}
-    return document.getElementById('updCsrfToken').value;
+function showOutput(text, isSuccess) {
+  const el = document.getElementById('updOutput');
+  el.textContent   = text;
+  el.style.display = 'block';
+  el.style.color   = isSuccess ? '' : 'var(--red, #ef5350)';
+  el.scrollTop     = 0;
 }
 
-function showOutput(text, isSuccess) {
-    const el = document.getElementById('updOutput');
-    el.textContent   = text;
-    el.style.display = 'block';
-    el.style.color   = isSuccess ? '' : 'var(--red, #ef5350)';
-    el.scrollTop     = 0;
+async function postJson(params) {
+  const resp = await fetch('/plugins/updater/include/ajax.php', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    params.toString(),
+  });
+  if (resp.status === 403) {
+    throw new Error('Access denied.');
+  }
+  if (!resp.ok) {
+    throw new Error('Server returned ' + resp.status);
+  }
+  const text = await resp.text();
+  if (!text) {
+    throw new Error('Empty response from server.');
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid response from server.');
+  }
 }
 
 async function startUpdate() {
-    const url    = document.getElementById('updateUrl').value.trim();
-    const md5    = document.getElementById('updateMd5').value.trim();
+  const url = document.getElementById('updateUrl').value.trim();
+  const md5 = document.getElementById('updateMd5').value.trim();
 
-    if (!url) {
-        alert('Please enter a download URL.');
-        return;
+  if (!url) {
+    alert('Please enter a download URL.');
+    return;
+  }
+
+  if (!confirm(
+    'This will download and install the Unraid OS package onto /boot.\n\n' +
+    'Current boot files will be moved to /boot/previous as a backup.\n\n' +
+    'A reboot is required to complete the update.\n\nProceed?'
+  )) {
+    return;
+  }
+
+  const btn       = document.getElementById('installBtn');
+  const rebootBtn = document.getElementById('rebootBtn');
+
+  btn.disabled            = true;
+  logOffset               = 0;
+  rebootBtn.style.display = 'none';
+  showOutput('Starting\u2026', true);
+
+  try {
+    const data = await postJson(new URLSearchParams({
+      action:     'start_update',
+      csrf_token: CSRF_TOKEN,
+      url:        url,
+      md5:        md5,
+    }));
+    if (!data.success) {
+      showOutput('Error: ' + data.message, false);
+      btn.disabled = false;
+      return;
     }
-
-    if (!confirm(
-        'This will download and install the Unraid OS package onto /boot.\n\n' +
-        'Current boot files will be moved to /boot/previous as a backup.\n\n' +
-        'A reboot is required to complete the update.\n\nProceed?'
-    )) {
-        return;
-    }
-
-    const btn       = document.getElementById('installBtn');
-    const rebootBtn = document.getElementById('rebootBtn');
-
-    btn.disabled            = true;
-    logOffset               = 0;
-    rebootBtn.style.display = 'none';
-    showOutput('Starting\u2026', true);
-
-    try {
-        const resp = await fetch('/plugins/updater/include/ajax.php', {
-            method:  'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-TOKEN': csrf(),
-            },
-            body:    new URLSearchParams({
-                action:     'start_update',
-                csrf_token: csrf(),
-                url:        url,
-                md5:        md5,
-            }),
-        });
-        const data = await resp.json();
-        if (!data.success) {
-            showOutput('Error: ' + data.message, false);
-            btn.disabled = false;
-            return;
-        }
-        pollTimer = setInterval(pollLog, 1500);
-    } catch (e) {
-        showOutput('Error: ' + e.message, false);
-        btn.disabled = false;
-    }
+    pollTimer = setInterval(pollLog, 1500);
+  } catch (e) {
+    showOutput('Error: ' + e.message, false);
+    btn.disabled = false;
+  }
 }
 
 async function pollLog() {
-    try {
-        const resp = await fetch('/plugins/updater/include/ajax.php', {
-            method:  'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-TOKEN': csrf(),
-            },
-            body: new URLSearchParams({
-                action:     'poll_log',
-                csrf_token: csrf(),
-                offset:     logOffset,
-            }),
-        });
-        const data = await resp.json();
-        if (!data.success) {
-            return;
-        }
+  try {
+    const data = await postJson(new URLSearchParams({
+      action:     'poll_log',
+      csrf_token: CSRF_TOKEN,
+      offset:     logOffset,
+    }));
+    if (!data.success) {
+      return;
+    }
 
-        if (data.content) {
-            const outEl      = document.getElementById('updOutput');
-            outEl.textContent += data.content;
-            outEl.scrollTop    = outEl.scrollHeight;
-            logOffset          = data.offset;
-        }
+    if (data.content) {
+      const outEl      = document.getElementById('updOutput');
+      outEl.textContent += data.content;
+      outEl.scrollTop    = outEl.scrollHeight;
+      logOffset          = data.offset;
+    }
 
-        if (data.done) {
-            clearInterval(pollTimer);
-            document.getElementById('rebootBtn').style.display = 'inline-block';
-            document.getElementById('installBtn').disabled     = false;
-        } else if (data.failed) {
-            clearInterval(pollTimer);
-            document.getElementById('updOutput').style.color  = 'var(--red, #ef5350)';
-            document.getElementById('installBtn').disabled     = false;
-        }
-    } catch (e) {}
+    if (data.done) {
+      clearInterval(pollTimer);
+      document.getElementById('rebootBtn').style.display = 'inline-block';
+      document.getElementById('installBtn').disabled     = false;
+    } else if (data.failed) {
+      clearInterval(pollTimer);
+      document.getElementById('updOutput').style.color = 'var(--red, #ef5350)';
+      document.getElementById('installBtn').disabled     = false;
+    }
+  } catch (e) {}
 }
 
 function rebootNow() {
-    if (!confirm('Reboot the system now?')) {
-        return;
-    }
-    const btn = document.getElementById('rebootBtn');
-    btn.disabled = true;
-    btn.value    = 'Rebooting\u2026';
+  if (!confirm('Reboot the system now?')) {
+    return;
+  }
+  const btn = document.getElementById('rebootBtn');
+  btn.disabled = true;
+  btn.value    = 'Rebooting\u2026';
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/webGui/include/Boot.php';
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/webGui/include/Boot.php';
 
-    [['cmd', 'reboot'], ['csrf_token', csrf()]].forEach(([name, value]) => {
-        const input = document.createElement('input');
-        input.type  = 'hidden';
-        input.name  = name;
-        input.value = value;
-        form.appendChild(input);
-    });
+  [['cmd', 'reboot'], ['csrf_token', CSRF_TOKEN]].forEach(([name, value]) => {
+    const input = document.createElement('input');
+    input.type  = 'hidden';
+    input.name  = name;
+    input.value = value;
+    form.appendChild(input);
+  });
 
-    document.body.appendChild(form);
-    form.submit();
+  document.body.appendChild(form);
+  form.submit();
 }
 </script>
