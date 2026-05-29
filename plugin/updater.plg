@@ -4,7 +4,7 @@
 <PLUGIN
   name="updater"
   author="wandercone"
-  version="2026.05.29"
+  version="2026.05.29.01"
   launch="Tools/Updater"
   pluginURL="https://raw.githubusercontent.com/wandercone/Updater/main/plugin/updater.plg"
   support="https://github.com/wandercone/Updater/issues"
@@ -16,6 +16,10 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.05.29.01
+
+fix: all aboard the struggle-bus of "it worked when i tested it"
+
 ### 2026.05.29
 
 fix: just can't win with CSRF but this seems to work stable-ish
@@ -24,19 +28,14 @@ fix: just can't win with CSRF but this seems to work stable-ish
 
 fix: correct installation log positioning on page
 
-### 2026.03.31.01
-
-- fix: harmonize csrf handling & fix output of log
-- chore: fix README.md project name
-
 
 For older releases, see https://github.com/wandercone/Updater/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/updater/updater-2026.05.29-noarch-1.txz">
-<URL>https://github.com/wandercone/Updater/releases/download/2026.05.29/updater-2026.05.29-noarch-1.txz</URL>
-<SHA256>cdd20065745c3b07b2a61cc381d6009a3971b7c9f26c931455cf36334bf5266f</SHA256>
+<FILE Name="/boot/config/plugins/updater/updater-2026.05.29.01-noarch-1.txz">
+<URL>https://github.com/wandercone/Updater/releases/download/2026.05.29.01/updater-2026.05.29.01-noarch-1.txz</URL>
+<SHA256>0462ddb4d8fb3db5d7bdfbd0f4946411992975c89e6272cd5861c0d0727da725</SHA256>
 </FILE>
 
 <!--
@@ -45,15 +44,15 @@ The 'install' script.
 <FILE Run="/bin/bash">
 <INLINE>
 <![CDATA[
-upgradepkg --install-new /boot/config/plugins/updater/updater-2026.05.29-noarch-1.txz
+upgradepkg --install-new /boot/config/plugins/updater/updater-2026.05.29.01-noarch-1.txz
 
 # cleanup old versions
-rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.05.29')
+rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.05.29.01')
 
 echo ""
 echo "----------------------------------------------------"
 echo " updater has been installed."
-echo " Version: 2026.05.29"
+echo " Version: 2026.05.29.01"
 echo "----------------------------------------------------"
 echo ""
 ]]>
