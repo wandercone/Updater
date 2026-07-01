@@ -26,6 +26,13 @@ For older releases, see https://github.com/{{ env['GITHUB_REPOSITORY'] }}/releas
 <SHA256>{{ env['PLUGIN_CHECKSUM'] }}</SHA256>
 </FILE>
 
+<FILE Name="/boot/config/plugins/{{ name }}/{{ name }}.cron">
+<INLINE>
+# Generated {{ name }} plugin scheduled tasks
+# Disable/enable and change schedule from the plugin settings page
+</INLINE>
+</FILE>
+
 <!--
 The 'install' script.
 -->
@@ -36,6 +43,12 @@ upgradepkg --install-new /boot/config/plugins/{{ name }}/{{ package_name }}-{{ e
 
 # cleanup old versions
 rm -f $(ls /boot/config/plugins/{{ name }}/{{ package_name }}-*.txz 2>/dev/null | grep -v '{{ env['PLUGIN_VERSION'] }}')
+
+# regenerate the plugin-owned cron file from saved state (also recreates it on boot)
+/usr/bin/php /usr/local/emhttp/plugins/{{ name }}/include/cron.php --install-cron 2>/dev/null || true
+
+# sync the plugin-owned cron file into the running cron state
+/usr/local/sbin/update_cron
 
 echo ""
 echo "----------------------------------------------------"
@@ -57,6 +70,9 @@ removepkg {{ package_name }}
 
 rm -rf /usr/local/emhttp/plugins/{{ name }}
 rm -rf /boot/config/plugins/{{ name }}
+
+# sync removal into the running cron state
+/usr/local/sbin/update_cron
 ]]>
 </INLINE>
 </FILE>
