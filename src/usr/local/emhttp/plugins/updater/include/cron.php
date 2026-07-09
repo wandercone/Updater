@@ -279,7 +279,8 @@ function isVerified(string $file, string $md5, string $sha256): bool
     }
 
     logMessage('WARNING: No checksum available; skipping verification.');
-    return true;
+    logMessage('ERROR: No checksum available; rejecting file.');
+    return false;
 }
 
 function installStagedFile(string $file, string $version): int
