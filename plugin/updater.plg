@@ -4,7 +4,7 @@
 <PLUGIN
   name="updater"
   author="wandercone"
-  version="2026.05.29.01"
+  version="2026.07.09"
   launch="Tools/Updater"
   pluginURL="https://raw.githubusercontent.com/wandercone/Updater/main/plugin/updater.plg"
   support="https://github.com/wandercone/Updater/issues"
@@ -16,6 +16,10 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.07.09
+
+feat: automatic patch updates
+
 ### 2026.05.29.01
 
 fix: all aboard the struggle-bus of "it worked when i tested it"
@@ -24,18 +28,21 @@ fix: all aboard the struggle-bus of "it worked when i tested it"
 
 fix: just can't win with CSRF but this seems to work stable-ish
 
-### 2026.05.10
-
-fix: correct installation log positioning on page
-
 
 For older releases, see https://github.com/wandercone/Updater/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/updater/updater-2026.05.29.01-noarch-1.txz">
-<URL>https://github.com/wandercone/Updater/releases/download/2026.05.29.01/updater-2026.05.29.01-noarch-1.txz</URL>
-<SHA256>0462ddb4d8fb3db5d7bdfbd0f4946411992975c89e6272cd5861c0d0727da725</SHA256>
+<FILE Name="/boot/config/plugins/updater/updater-2026.07.09-noarch-1.txz">
+<URL>https://github.com/wandercone/Updater/releases/download/2026.07.09/updater-2026.07.09-noarch-1.txz</URL>
+<SHA256>cd9975203635e84586af6597b78fd25728c233afbf70129b098c3a4a36267723</SHA256>
+</FILE>
+
+<FILE Name="/boot/config/plugins/updater/updater.cron">
+<INLINE>
+# Generated updater plugin scheduled tasks
+# Disable/enable and change schedule from the plugin settings page
+</INLINE>
 </FILE>
 
 <!--
@@ -44,15 +51,21 @@ The 'install' script.
 <FILE Run="/bin/bash">
 <INLINE>
 <![CDATA[
-upgradepkg --install-new /boot/config/plugins/updater/updater-2026.05.29.01-noarch-1.txz
+upgradepkg --install-new /boot/config/plugins/updater/updater-2026.07.09-noarch-1.txz
 
 # cleanup old versions
-rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.05.29.01')
+rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.07.09')
+
+# regenerate the plugin-owned cron file from saved state (also recreates it on boot)
+/usr/bin/php /usr/local/emhttp/plugins/updater/include/cron.php --install-cron 2>/dev/null || true
+
+# sync the plugin-owned cron file into the running cron state
+/usr/local/sbin/update_cron
 
 echo ""
 echo "----------------------------------------------------"
 echo " updater has been installed."
-echo " Version: 2026.05.29.01"
+echo " Version: 2026.07.09"
 echo "----------------------------------------------------"
 echo ""
 ]]>
@@ -69,6 +82,9 @@ removepkg updater
 
 rm -rf /usr/local/emhttp/plugins/updater
 rm -rf /boot/config/plugins/updater
+
+# sync removal into the running cron state
+/usr/local/sbin/update_cron
 ]]>
 </INLINE>
 </FILE>
