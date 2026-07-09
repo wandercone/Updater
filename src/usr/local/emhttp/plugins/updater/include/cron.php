@@ -478,5 +478,4 @@ function releaseLock(mixed $lock): void
         flock($lock, LOCK_UN);
         fclose($lock);
     }
-    @unlink(LOCK_FILE);
 }
