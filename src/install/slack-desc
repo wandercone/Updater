@@ -1,9 +1,9 @@
          |-----handy-ruler------------------------------------------------------|
 updater: updater
 updater:
-updater: An unofficial Unraid updater plugin.
-updater: Fetches a manual specified releases and installs is via the 
-updater: documented manual upgrade process.
+updater: An unofficial Unraid updater plugin. Supports manual installs from
+updater: any release URL as well as scheduled automatic patch updates within
+updater: the currents branch.
 updater:
 updater: https://github.com/wandercone/Updater
 updater:

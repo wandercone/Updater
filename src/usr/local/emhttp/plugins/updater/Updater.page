@@ -19,15 +19,119 @@ if ($currentVersion === '') {
 }
 ?>
 
+<style>
+#updaterForm select, #updaterForm input[type="time"] { width: auto; min-width: 0; }
+#updaterForm .freqWrap { display: inline; margin-left: 12px; white-space: normal; }
+#updaterForm .timeDayGroup { display: inline; white-space: nowrap; }
+</style>
+
 <form id="updaterForm">
 
 <table class="unraid tablesorter"><thead><tr><td>Current Installation</td></tr></thead></table>
 <dl>
   <dt>Unraid Version</dt>
   <dd><?= htmlspecialchars($currentVersion); ?></dd>
+  <dt>Auto-Update Branch</dt>
+  <dd><span id="branchLabel">...</span> (patch releases only)</dd>
 </dl>
 
-<table class="unraid tablesorter"><thead><tr><td>Update Details</td></tr></thead></table>
+<table class="unraid tablesorter"><thead><tr><td>Automatic Updates</td></tr></thead></table>
+<dl>
+  <dt>Auto Updates</dt>
+  <dd>
+    <select id="settingEnabled">
+      <option value="false">Disabled</option>
+      <option value="true">Enabled</option>
+    </select>
+  </dd>
+  <dt>Update Mode</dt>
+  <dd>
+    <select id="settingAutoMode">
+      <option value="check_only">Check and notify only</option>
+      <option value="stage">Stage updates automatically</option>
+      <option value="install">Install updates automatically</option>
+    </select>
+    <span class="orange-text" id="autoWarning" style="display:none; margin-left:12px;">
+      <i class="fa fa-warning"></i> Automatic install writes updates to /boot at the configured time.
+    </span>
+  </dd>
+  <dt>Post Install</dt>
+  <dd>
+    <select id="settingAutoReboot">
+      <option value="false">Notify and wait for manual reboot</option>
+      <option value="true">Stop the array and reboot automatically</option>
+    </select>
+    <span class="orange-text" id="rebootWarning" style="display:none; margin-left:12px;">
+      <i class="fa fa-warning"></i> This will take the array offline and reboot without asking.
+    </span>
+  </dd>
+  <dt>Check Frequency</dt>
+  <dd>
+    <select id="settingCheckFreq">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+      <option value="custom">Custom cron</option>
+    </select>
+    <span class="freqWrap">
+      <span id="checkTimeWrap" class="timeDayGroup">at <input type="time" id="settingCheckTime" value="02:00"></span>
+      <span id="checkDayWrap" class="timeDayGroup" style="display:none;">on <select id="settingCheckDay">
+        <option value="0">Sunday</option>
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select></span>
+    </span>
+    <span id="checkCronWrap" class="freqWrap" style="display:none;">cron <input type="text" id="settingCheckCron" value="0 2 * * *" style="width:140px;"></span>
+  </dd>
+  <dt>Install Time</dt>
+  <dd>
+    <select id="settingInstallFreq">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="custom">Custom cron</option>
+    </select>
+    <span class="freqWrap">
+      <span id="installTimeWrap" class="timeDayGroup">at <input type="time" id="settingInstallTime" value="03:00"></span>
+      <span id="installDayWrap" class="timeDayGroup" style="display:none;">on <select id="settingInstallDay">
+        <option value="0">Sunday</option>
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select></span>
+    </span>
+    <span id="installCronWrap" class="freqWrap" style="display:none;">cron <input type="text" id="settingInstallCron" value="0 3 * * 0" style="width:140px;"></span>
+  </dd>
+  <dt>&nbsp;</dt>
+  <dd>
+    <input type="button" value="Save Settings" onclick="saveSettings()">
+    <input type="button" value="Check Now" onclick="checkNow()">
+    <span id="settingsMsg" style="margin-left:12px;"></span>
+  </dd>
+</dl>
+
+<table class="unraid tablesorter"><thead><tr><td>Update Status</td></tr></thead></table>
+<dl id="statusPanel">
+  <dt>Last Check</dt>
+  <dd id="lastCheck">Never</dd>
+  <dt>Available Update</dt>
+  <dd id="availableUpdate">None</dd>
+  <dt>Staged Update</dt>
+  <dd id="stagedUpdate">None</dd>
+  <dt id="applyStagedDt" style="display:none;">&nbsp;</dt>
+  <dd id="applyStagedDd" style="display:none;">
+    <input type="button" id="applyStagedBtn" value="Apply Staged Update &amp; Reboot"
+           onclick="applyStaged()">
+  </dd>
+</dl>
+
+<table class="unraid tablesorter"><thead><tr><td>Manual Update</td></tr></thead></table>
 <dl>
   <dt>Download URL</dt>
   <dd>
@@ -73,6 +177,168 @@ function showOutput(text, isSuccess) {
   el.style.display = 'block';
   el.style.color   = isSuccess ? '' : 'var(--red, #ef5350)';
   el.scrollTop     = 0;
+}
+
+function branchFromVersion(version) {
+  const m = String(version).match(/^(\d+)\.(\d+)/);
+  return m ? `${m[1]}.${m[2]}` : 'Unknown';
+}
+
+function formatDate(iso) {
+  if (!iso) return 'Never';
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
+}
+
+async function loadSettings() {
+  const renderedVersion = <?= json_encode($currentVersion); ?>;
+
+  const data = await postJson(new URLSearchParams({ action: 'get_settings', csrf_token: CSRF_TOKEN }));
+  if (!data.success) return;
+
+  const state = data.state || {};
+  const settings = state.settings || {};
+  const installed = renderedVersion !== 'Unknown' ? renderedVersion : (data.installed_version || 'Unknown');
+
+  document.getElementById('branchLabel').textContent = branchFromVersion(installed);
+
+  document.getElementById('settingEnabled').value        = String(settings.enabled ?? false);
+  document.getElementById('settingAutoMode').value         = settings.auto_mode ?? 'check_only';
+  document.getElementById('settingAutoReboot').value       = String(settings.auto_reboot ?? false);
+  document.getElementById('settingCheckFreq').value         = settings.check_frequency ?? 'daily';
+  document.getElementById('settingCheckTime').value         = settings.check_time ?? '02:00';
+  document.getElementById('settingCheckDay').value          = String(settings.check_day ?? 0);
+  document.getElementById('settingCheckCron').value         = settings.check_cron ?? '0 2 * * *';
+  document.getElementById('settingInstallFreq').value     = settings.install_frequency ?? 'weekly';
+  document.getElementById('settingInstallTime').value       = settings.install_window_time ?? '03:00';
+  document.getElementById('settingInstallDay').value        = String(settings.install_window_day ?? 0);
+  document.getElementById('settingInstallCron').value       = settings.install_cron ?? '0 3 * * 0';
+
+  updateUiVisibility();
+  renderStatus(state);
+}
+
+function updateUiVisibility() {
+  const autoMode = document.getElementById('settingAutoMode').value;
+  document.getElementById('autoWarning').style.display = autoMode === 'install' ? 'inline' : 'none';
+
+  const autoReboot = document.getElementById('settingAutoReboot').value === 'true';
+  document.getElementById('rebootWarning').style.display = (autoMode === 'install' && autoReboot) ? 'inline' : 'none';
+
+  const checkFreq = document.getElementById('settingCheckFreq').value;
+  document.getElementById('checkTimeWrap').style.display  = checkFreq === 'custom' ? 'none' : 'inline';
+  document.getElementById('checkDayWrap').style.display   = checkFreq === 'weekly' ? 'inline' : 'none';
+  document.getElementById('checkCronWrap').style.display   = checkFreq === 'custom' ? 'inline' : 'none';
+
+  const installFreq = document.getElementById('settingInstallFreq').value;
+  document.getElementById('installTimeWrap').style.display  = installFreq === 'custom' ? 'none' : 'inline';
+  document.getElementById('installDayWrap').style.display   = installFreq === 'weekly' ? 'inline' : 'none';
+  document.getElementById('installCronWrap').style.display  = installFreq === 'custom' ? 'inline' : 'none';
+}
+
+function gatherSettings() {
+  return {
+    enabled:             document.getElementById('settingEnabled').value === 'true',
+    auto_mode:           document.getElementById('settingAutoMode').value,
+    auto_reboot:         document.getElementById('settingAutoReboot').value === 'true',
+    check_frequency:     document.getElementById('settingCheckFreq').value,
+    check_time:          document.getElementById('settingCheckTime').value,
+    check_day:           parseInt(document.getElementById('settingCheckDay').value, 10),
+    check_cron:          document.getElementById('settingCheckCron').value,
+    install_frequency:   document.getElementById('settingInstallFreq').value,
+    install_window_time: document.getElementById('settingInstallTime').value,
+    install_window_day:  parseInt(document.getElementById('settingInstallDay').value, 10),
+    install_cron:        document.getElementById('settingInstallCron').value,
+  };
+}
+
+async function saveSettings() {
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = 'Saving...';
+  try {
+    const data = await postJson(new URLSearchParams({
+      action:     'save_settings',
+      csrf_token: CSRF_TOKEN,
+      settings:   JSON.stringify(gatherSettings()),
+    }));
+    msg.textContent = data.success ? 'Saved.' : 'Error: ' + data.message;
+    msg.className   = data.success ? '' : 'red-text';
+  } catch (e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.className   = 'red-text';
+  }
+}
+
+async function checkNow() {
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = 'Checking...';
+  try {
+    const data = await postJson(new URLSearchParams({
+      action:     'check_now',
+      csrf_token: CSRF_TOKEN,
+    }));
+    if (data.success) {
+      msg.textContent = data.message || 'Check complete.';
+      msg.className   = '';
+    } else {
+      msg.textContent = 'Error: ' + (data.message || 'check failed');
+      msg.className   = 'red-text';
+    }
+    if (data.state) renderStatus(data.state);
+  } catch (e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.className   = 'red-text';
+  }
+}
+
+function renderStatus(state) {
+  state = state || {};
+  document.getElementById('lastCheck').textContent =
+    (state.last_check_error ? 'Error: ' + state.last_check_error + ' (' : '') +
+    formatDate(state.last_check) +
+    (state.last_check_error ? ')' : '');
+
+  const avail = state.available;
+  document.getElementById('availableUpdate').textContent =
+    avail && avail.version ? `${avail.version} (${avail.url})` : 'None';
+
+  const staged = state.staged;
+  const hasStaged = staged && staged.version;
+  document.getElementById('stagedUpdate').textContent =
+    hasStaged ? `${staged.version} staged at ${formatDate(staged.staged_at)}` : 'None';
+
+  document.getElementById('applyStagedDt').style.display = hasStaged ? '' : 'none';
+  document.getElementById('applyStagedDd').style.display = hasStaged ? '' : 'none';
+}
+
+async function applyStaged() {
+  if (!confirm('This will install the staged update to /boot and then reboot.\n\nProceed?')) return;
+
+  const btn = document.getElementById('applyStagedBtn');
+  btn.disabled = true;
+
+  logOffset = 0;
+  document.getElementById('rebootBtn').style.display = 'none';
+  showOutput('Installing staged update...', true);
+
+  try {
+    const data = await postJson(new URLSearchParams({
+      action:     'apply_staged',
+      csrf_token: CSRF_TOKEN,
+    }));
+    if (!data.success) {
+      showOutput('Error: ' + data.message, false);
+      btn.disabled = false;
+      return;
+    }
+    pollTimer = setInterval(pollLog, 1500);
+  } catch (e) {
+    showOutput('Error: ' + e.message, false);
+    btn.disabled = false;
+  }
 }
 
 async function postJson(params) {
@@ -164,13 +430,22 @@ async function pollLog() {
       clearInterval(pollTimer);
       document.getElementById('rebootBtn').style.display = 'inline-block';
       document.getElementById('installBtn').disabled     = false;
+      document.getElementById('applyStagedBtn').disabled = false;
     } else if (data.failed) {
       clearInterval(pollTimer);
       document.getElementById('updOutput').style.color = 'var(--red, #ef5350)';
       document.getElementById('installBtn').disabled     = false;
+      document.getElementById('applyStagedBtn').disabled = false;
     }
   } catch (e) {}
 }
+
+// Hook up dynamic UI handlers and load saved settings on page load.
+document.addEventListener('DOMContentLoaded', () => {
+  ['settingCheckFreq', 'settingInstallFreq', 'settingAutoMode', 'settingAutoReboot']
+    .forEach(id => document.getElementById(id).addEventListener('change', updateUiVisibility));
+  loadSettings();
+});
 
 function rebootNow() {
   if (!confirm('Reboot the system now?')) {
