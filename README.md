@@ -43,7 +43,6 @@ After installation the plugin is available at **Tools > Updater**.
       - Stop the array and reboot automatically; stop the array with `emcmd 'cmdStop=Stop'`, then reboot.
     - **Check Frequency**: how often to query `releases.unraid.net/json`.
     - **Install Window**: when unattended installs are allowed.
-    - **Pre-Release Updates**: include RC/beta releases.
 2. Click **Save Settings**.
 3. Click **Check Now** to test the flow.
 

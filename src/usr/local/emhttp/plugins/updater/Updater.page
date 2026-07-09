@@ -108,13 +108,6 @@ if ($currentVersion === '') {
     </span>
     <span id="installCronWrap" class="freqWrap" style="display:none;">cron <input type="text" id="settingInstallCron" value="0 3 * * 0" style="width:140px;"></span>
   </dd>
-  <dt>Pre-Release Updates</dt>
-  <dd>
-    <select id="settingPrerelease">
-      <option value="false">Stable only</option>
-      <option value="true">Include RCs/betas</option>
-    </select>
-  </dd>
   <dt>&nbsp;</dt>
   <dd>
     <input type="button" value="Save Settings" onclick="saveSettings()">
@@ -223,7 +216,6 @@ async function loadSettings() {
   document.getElementById('settingInstallTime').value       = settings.install_window_time ?? '03:00';
   document.getElementById('settingInstallDay').value        = String(settings.install_window_day ?? 0);
   document.getElementById('settingInstallCron').value       = settings.install_cron ?? '0 3 * * 0';
-  document.getElementById('settingPrerelease').value        = String(settings.include_prerelease ?? false);
 
   updateUiVisibility();
   renderStatus(state);
@@ -260,7 +252,6 @@ function gatherSettings() {
     install_window_time: document.getElementById('settingInstallTime').value,
     install_window_day:  parseInt(document.getElementById('settingInstallDay').value, 10),
     install_cron:        document.getElementById('settingInstallCron').value,
-    include_prerelease:  document.getElementById('settingPrerelease').value === 'true',
   };
 }
 

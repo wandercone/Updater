@@ -314,7 +314,6 @@ function validateSettings(array $input): array
     $settings['install_window_day']  = max(0, min(6, Settings::int($input, 'install_window_day', 0)));
     $settings['install_window_time'] = sanitizeTime(Settings::string($input, 'install_window_time', '03:00'));
     $settings['install_cron']        = sanitizeCron(Settings::string($input, 'install_cron', '0 3 * * 0'));
-    $settings['include_prerelease']  = filter_var($input['include_prerelease'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
     return $settings;
 }

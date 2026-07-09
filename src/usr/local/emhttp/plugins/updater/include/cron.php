@@ -70,8 +70,7 @@ function runCheck(array $settings): void
         exit(1);
     }
 
-    $includePrerelease = (bool)($settings['include_prerelease'] ?? false);
-    $autoMode          = Settings::string($settings, 'auto_mode', 'check_only');
+    $autoMode = Settings::string($settings, 'auto_mode', 'check_only');
 
     logMessage("Checking for updates. Installed: {$installed}, mode: {$autoMode}");
 
@@ -89,7 +88,7 @@ function runCheck(array $settings): void
         exit(1);
     }
 
-    $match = Versions::findNewestMatchingPatch($releases, $installed, $includePrerelease);
+    $match = Versions::findNewestMatchingPatch($releases, $installed);
 
     if ($match === null) {
         logMessage('No new patch release available on branch ' . branchLabel($installed) . '.');

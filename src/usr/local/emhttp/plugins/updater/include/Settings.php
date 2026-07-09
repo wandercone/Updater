@@ -22,7 +22,6 @@ final class Settings
         'install_window_day'  => 0,
         'install_window_time' => '03:00',
         'install_cron'        => '0 3 * * 0',
-        'include_prerelease'  => false,
     ];
 
     /** @var array<string,mixed>|null */

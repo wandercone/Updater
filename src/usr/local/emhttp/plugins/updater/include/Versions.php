@@ -82,7 +82,7 @@ final class Versions
      * @param array<mixed> $releases
      * @return array<mixed>|null
      */
-    public static function findNewestMatchingPatch(array $releases, string $installed, bool $includePrerelease): ?array
+    public static function findNewestMatchingPatch(array $releases, string $installed): ?array
     {
         /** @var array<mixed>|null $best */
         $best = null;
@@ -102,10 +102,6 @@ final class Versions
             }
 
             if (!self::sameMinorBranch($version, $installed)) {
-                continue;
-            }
-
-            if (!$includePrerelease && self::isPrerelease($version)) {
                 continue;
             }
 
