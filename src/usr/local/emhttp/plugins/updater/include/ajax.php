@@ -39,7 +39,7 @@ $action = postStr('action');
 switch ($action) {
     case 'get_settings':
         try {
-            $state = Settings::fullState();
+            $state                      = Settings::fullState();
             $state['installed_version'] = Settings::installedVersion();
             echo json_encode(['success' => true, 'state' => $state]);
         } catch (\Throwable $e) {
@@ -50,7 +50,7 @@ switch ($action) {
     case 'save_settings':
         try {
             $raw = json_decode(postStr('settings'), true);
-            if (!is_array($raw)) {
+            if ( ! is_array($raw)) {
                 jsonResponse(false, 'Invalid settings payload.');
             }
 
@@ -64,9 +64,9 @@ switch ($action) {
 
     case 'apply_staged':
         try {
-            $state = Settings::fullState();
+            $state  = Settings::fullState();
             $staged = $state['staged'] ?? null;
-            if (!is_array($staged) || !is_string($staged['file'] ?? null) || !is_file($staged['file'])) {
+            if ( ! is_array($staged) || ! is_string($staged['file'] ?? null) || ! is_file($staged['file'])) {
                 jsonResponse(false, 'No staged update is available.');
             }
 
@@ -94,12 +94,12 @@ switch ($action) {
 
     case 'check_now':
         try {
-            $php = Settings::phpBinary();
+            $php    = Settings::phpBinary();
             $script = escapeshellarg('/usr/local/emhttp/plugins/updater/include/cron.php');
-            $out = [];
-            $rc = 0;
+            $out    = [];
+            $rc     = 0;
             exec("{$php} {$script} check 2>&1", $out, $rc);
-            $state = Settings::fullState();
+            $state  = Settings::fullState();
             $output = implode("\n", array_filter($out, static fn (string $line): bool => $line !== ''));
 
             if ($rc !== 0) {
@@ -142,102 +142,102 @@ switch ($action) {
         }
 
         $installScript = <<<'BASH'
-#!/bin/bash
-# Unraid OS manual install script
+            #!/bin/bash
+            # Unraid OS manual install script
 
-URL="$1"
-MD5="$2"
-WORKDIR="/tmp/updater"
+            URL="$1"
+            MD5="$2"
+            WORKDIR="/tmp/updater"
 
-set -o pipefail
-mkdir -p "$WORKDIR"
+            set -o pipefail
+            mkdir -p "$WORKDIR"
 
-echo "=== Unraid OS Update ==="
-date
-echo "Target: $URL"
-echo ""
+            echo "=== Unraid OS Update ==="
+            date
+            echo "Target: $URL"
+            echo ""
 
-# Download
-echo "[1/5] Downloading OS package"
-rm -f "$WORKDIR/unraid.zip"
-wget -O "$WORKDIR/unraid.zip" "$URL"
-DL_RC=$?
-echo ""
-if [[ $DL_RC -ne 0 ]] || [[ ! -s "$WORKDIR/unraid.zip" ]]; then
-    echo "ERROR: Download failed (exit code $DL_RC) or file is empty."
-    echo "FAILED"
-    exit 1
-fi
-echo "Download complete."
-echo ""
+            # Download
+            echo "[1/5] Downloading OS package"
+            rm -f "$WORKDIR/unraid.zip"
+            wget -O "$WORKDIR/unraid.zip" "$URL"
+            DL_RC=$?
+            echo ""
+            if [[ $DL_RC -ne 0 ]] || [[ ! -s "$WORKDIR/unraid.zip" ]]; then
+                echo "ERROR: Download failed (exit code $DL_RC) or file is empty."
+                echo "FAILED"
+                exit 1
+            fi
+            echo "Download complete."
+            echo ""
 
-# Verify checksum
-if [[ -n "$MD5" ]]; then
-    echo "[2/5] Verifying MD5 checksum"
-    ACTUAL=$(md5sum "$WORKDIR/unraid.zip" | awk '{print $1}')
-    if [[ "${ACTUAL,,}" != "${MD5,,}" ]]; then
-        echo "ERROR: Checksum mismatch!"
-        echo "  Expected: $MD5"
-        echo "  Actual:   $ACTUAL"
-        echo "FAILED"
-        exit 1
-    fi
-    echo "Checksum verified."
-else
-    echo "[2/5] No checksum provided — skipping verification."
-fi
-echo ""
+            # Verify checksum
+            if [[ -n "$MD5" ]]; then
+                echo "[2/5] Verifying MD5 checksum"
+                ACTUAL=$(md5sum "$WORKDIR/unraid.zip" | awk '{print $1}')
+                if [[ "${ACTUAL,,}" != "${MD5,,}" ]]; then
+                    echo "ERROR: Checksum mismatch!"
+                    echo "  Expected: $MD5"
+                    echo "  Actual:   $ACTUAL"
+                    echo "FAILED"
+                    exit 1
+                fi
+                echo "Checksum verified."
+            else
+                echo "[2/5] No checksum provided — skipping verification."
+            fi
+            echo ""
 
-# Extract
-echo "[3/5] Extracting package"
-rm -rf "$WORKDIR/unraid_install"
-unzip -o -d "$WORKDIR/unraid_install" "$WORKDIR/unraid.zip"
-UNZIP_RC=$?
-if [[ $UNZIP_RC -ne 0 ]] || [[ ! -s "$WORKDIR/unraid_install/bzroot" ]]; then
-    echo "ERROR: Extraction failed (exit code $UNZIP_RC) or bzroot not found."
-    echo "FAILED"
-    exit 1
-fi
-echo "Extraction complete."
-echo ""
+            # Extract
+            echo "[3/5] Extracting package"
+            rm -rf "$WORKDIR/unraid_install"
+            unzip -o -d "$WORKDIR/unraid_install" "$WORKDIR/unraid.zip"
+            UNZIP_RC=$?
+            if [[ $UNZIP_RC -ne 0 ]] || [[ ! -s "$WORKDIR/unraid_install/bzroot" ]]; then
+                echo "ERROR: Extraction failed (exit code $UNZIP_RC) or bzroot not found."
+                echo "FAILED"
+                exit 1
+            fi
+            echo "Extraction complete."
+            echo ""
 
-# Back up existing boot files
-echo "[4/5] Backing up current boot files to /boot/previous"
-[[ ! -d /boot/previous ]] && mkdir -p /boot/previous
-for f in /boot/bz*; do
-    if [[ -f "$f" ]]; then
-        mv -f "$f" /boot/previous/
-        echo "  -> previous/$(basename "$f")"
-    fi
-done
-if [[ -f /boot/changes.txt ]]; then
-    mv -f /boot/changes.txt /boot/previous/
-    echo "  -> previous/changes.txt"
-fi
-echo ""
+            # Back up existing boot files
+            echo "[4/5] Backing up current boot files to /boot/previous"
+            [[ ! -d /boot/previous ]] && mkdir -p /boot/previous
+            for f in /boot/bz*; do
+                if [[ -f "$f" ]]; then
+                    mv -f "$f" /boot/previous/
+                    echo "  -> previous/$(basename "$f")"
+                fi
+            done
+            if [[ -f /boot/changes.txt ]]; then
+                mv -f /boot/changes.txt /boot/previous/
+                echo "  -> previous/changes.txt"
+            fi
+            echo ""
 
-# Install new boot files
-echo "[5/5] Installing new boot files to /boot"
-for f in "$WORKDIR/unraid_install/bz"*; do
-    if [[ -f "$f" ]]; then
-        cp -f "$f" /boot/
-        echo "  + $(basename "$f")"
-    fi
-done
-if [[ -f "$WORKDIR/unraid_install/changes.txt" ]]; then
-    cp -f "$WORKDIR/unraid_install/changes.txt" /boot/
-fi
-echo ""
+            # Install new boot files
+            echo "[5/5] Installing new boot files to /boot"
+            for f in "$WORKDIR/unraid_install/bz"*; do
+                if [[ -f "$f" ]]; then
+                    cp -f "$f" /boot/
+                    echo "  + $(basename "$f")"
+                fi
+            done
+            if [[ -f "$WORKDIR/unraid_install/changes.txt" ]]; then
+                cp -f "$WORKDIR/unraid_install/changes.txt" /boot/
+            fi
+            echo ""
 
-echo "Syncing boot device..."
-sync -f /boot
-echo ""
+            echo "Syncing boot device..."
+            sync -f /boot
+            echo ""
 
-echo "--- Update Complete ---"
-echo "Reboot the system to apply the new Unraid OS version."
-echo ""
-echo "DONE"
-BASH;
+            echo "--- Update Complete ---"
+            echo "Reboot the system to apply the new Unraid OS version."
+            echo ""
+            echo "DONE"
+            BASH;
 
         file_put_contents(SCRIPT_FILE, $installScript);
         chmod(SCRIPT_FILE, 0700);
@@ -257,6 +257,7 @@ BASH;
 
         jsonResponse(true, "Update started (PID: {$pid}).");
 
+        // no break
     case 'poll_log':
         $offset = max(0, (int)postStr('offset'));
         if ( ! file_exists(LOG_FILE)) {
@@ -283,26 +284,26 @@ BASH;
  */
 function validateSettings(array $input): array
 {
-    $validModes          = ['check_only', 'stage', 'install'];
-    $validCheckFreqs     = ['daily', 'weekly', 'monthly', 'custom'];
-    $validInstallFreqs   = ['daily', 'weekly', 'custom'];
+    $validModes        = ['check_only', 'stage', 'install'];
+    $validCheckFreqs   = ['daily', 'weekly', 'monthly', 'custom'];
+    $validInstallFreqs = ['daily', 'weekly', 'custom'];
 
     $autoMode = Settings::string($input, 'auto_mode', 'check_only');
-    if (!in_array($autoMode, $validModes, true)) {
+    if ( ! in_array($autoMode, $validModes, true)) {
         $autoMode = 'check_only';
     }
 
     $checkFreq = Settings::string($input, 'check_frequency', 'daily');
-    if (!in_array($checkFreq, $validCheckFreqs, true)) {
+    if ( ! in_array($checkFreq, $validCheckFreqs, true)) {
         $checkFreq = 'daily';
     }
 
     $installFreq = Settings::string($input, 'install_frequency', 'weekly');
-    if (!in_array($installFreq, $validInstallFreqs, true)) {
+    if ( ! in_array($installFreq, $validInstallFreqs, true)) {
         $installFreq = 'weekly';
     }
 
-    $settings = [];
+    $settings                        = [];
     $settings['enabled']             = filter_var($input['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
     $settings['auto_mode']           = $autoMode;
     $settings['auto_reboot']         = filter_var($input['auto_reboot'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -322,7 +323,7 @@ function sanitizeTime(string $time): string
 {
     $t = trim($time);
 
-    if (!preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $t, $m)) {
+    if ( ! preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $t, $m)) {
         return '02:00';
     }
 
@@ -345,72 +346,72 @@ function sanitizeCron(string $expression): string
 function buildManualInstallScript(string $zipFile): string
 {
     return <<<'BASH'
-#!/bin/bash
-# Unraid OS install script — generated by updater plugin
+        #!/bin/bash
+        # Unraid OS install script — generated by updater plugin
 
-ZIP="$1"
-WORKDIR="/tmp/updater"
-BOOT_DIR="${UPDATER_BOOT_DIR:-/boot}"
-PREVIOUS_DIR="$BOOT_DIR/previous"
+        ZIP="$1"
+        WORKDIR="/tmp/updater"
+        BOOT_DIR="${UPDATER_BOOT_DIR:-/boot}"
+        PREVIOUS_DIR="$BOOT_DIR/previous"
 
-set -o pipefail
-mkdir -p "$WORKDIR"
+        set -o pipefail
+        mkdir -p "$WORKDIR"
 
-echo "=== Unraid OS Update ==="
-date
-echo "Source: $ZIP"
-echo "Target boot directory: $BOOT_DIR"
-echo ""
+        echo "=== Unraid OS Update ==="
+        date
+        echo "Source: $ZIP"
+        echo "Target boot directory: $BOOT_DIR"
+        echo ""
 
-# Step 1: Extract
-echo "[1/4] Extracting package"
-rm -rf "$WORKDIR/unraid_install"
-unzip -o -d "$WORKDIR/unraid_install" "$ZIP"
-UNZIP_RC=$?
-if [[ $UNZIP_RC -ne 0 ]] || [[ ! -s "$WORKDIR/unraid_install/bzroot" ]]; then
-    echo "ERROR: Extraction failed (exit code $UNZIP_RC) or bzroot not found."
-    echo "FAILED"
-    exit 1
-fi
-echo "Extraction complete."
-echo ""
+        # Step 1: Extract
+        echo "[1/4] Extracting package"
+        rm -rf "$WORKDIR/unraid_install"
+        unzip -o -d "$WORKDIR/unraid_install" "$ZIP"
+        UNZIP_RC=$?
+        if [[ $UNZIP_RC -ne 0 ]] || [[ ! -s "$WORKDIR/unraid_install/bzroot" ]]; then
+            echo "ERROR: Extraction failed (exit code $UNZIP_RC) or bzroot not found."
+            echo "FAILED"
+            exit 1
+        fi
+        echo "Extraction complete."
+        echo ""
 
-# Step 2: Back up existing boot files
-echo "[2/4] Backing up current boot files to $PREVIOUS_DIR"
-[[ ! -d "$PREVIOUS_DIR" ]] && mkdir -p "$PREVIOUS_DIR"
-for f in "$BOOT_DIR"/bz*; do
-    if [[ -f "$f" ]]; then
-        mv -f "$f" "$PREVIOUS_DIR/"
-        echo "  -> previous/$(basename "$f")"
-    fi
-done
-if [[ -f "$BOOT_DIR/changes.txt" ]]; then
-    mv -f "$BOOT_DIR/changes.txt" "$PREVIOUS_DIR/"
-    echo "  -> previous/changes.txt"
-fi
-echo ""
+        # Step 2: Back up existing boot files
+        echo "[2/4] Backing up current boot files to $PREVIOUS_DIR"
+        [[ ! -d "$PREVIOUS_DIR" ]] && mkdir -p "$PREVIOUS_DIR"
+        for f in "$BOOT_DIR"/bz*; do
+            if [[ -f "$f" ]]; then
+                mv -f "$f" "$PREVIOUS_DIR/"
+                echo "  -> previous/$(basename "$f")"
+            fi
+        done
+        if [[ -f "$BOOT_DIR/changes.txt" ]]; then
+            mv -f "$BOOT_DIR/changes.txt" "$PREVIOUS_DIR/"
+            echo "  -> previous/changes.txt"
+        fi
+        echo ""
 
-# Step 3: Install new boot files
-echo "[3/4] Installing new boot files to $BOOT_DIR"
-for f in "$WORKDIR/unraid_install/bz"*; do
-    if [[ -f "$f" ]]; then
-        cp -f "$f" "$BOOT_DIR/"
-        echo "  + $(basename "$f")"
-    fi
-done
-if [[ -f "$WORKDIR/unraid_install/changes.txt" ]]; then
-    cp -f "$WORKDIR/unraid_install/changes.txt" "$BOOT_DIR/"
-fi
-echo ""
+        # Step 3: Install new boot files
+        echo "[3/4] Installing new boot files to $BOOT_DIR"
+        for f in "$WORKDIR/unraid_install/bz"*; do
+            if [[ -f "$f" ]]; then
+                cp -f "$f" "$BOOT_DIR/"
+                echo "  + $(basename "$f")"
+            fi
+        done
+        if [[ -f "$WORKDIR/unraid_install/changes.txt" ]]; then
+            cp -f "$WORKDIR/unraid_install/changes.txt" "$BOOT_DIR/"
+        fi
+        echo ""
 
-# Step 4: Sync
-echo "[4/4] Syncing boot device"
-sync -f "$BOOT_DIR"
-echo ""
+        # Step 4: Sync
+        echo "[4/4] Syncing boot device"
+        sync -f "$BOOT_DIR"
+        echo ""
 
-echo "--- Update Complete ---"
-echo "Reboot the system to apply the new Unraid OS version."
-echo ""
-echo "DONE"
-BASH;
+        echo "--- Update Complete ---"
+        echo "Reboot the system to apply the new Unraid OS version."
+        echo ""
+        echo "DONE"
+        BASH;
 }

@@ -28,7 +28,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 $command = $argv[1] ?? '';
-if (!in_array($command, ['check', 'install', '--install-cron'], true)) {
+if ( ! in_array($command, ['check', 'install', '--install-cron'], true)) {
     fwrite(STDERR, "Usage: cron.php check|install|--install-cron\n");
     exit(1);
 }
@@ -45,7 +45,7 @@ if (($settings['enabled'] ?? false) === false) {
 }
 
 $lock = acquireLock();
-if (!$lock) {
+if ( ! $lock) {
     logMessage('Another updater process is already running; exiting.');
     exit(0);
 }
@@ -82,7 +82,7 @@ function runCheck(array $settings): void
     }
 
     $releases = json_decode($json, true);
-    if (!is_array($releases)) {
+    if ( ! is_array($releases)) {
         logMessage('ERROR: Releases JSON is not an array.');
         Settings::updateState(['last_check' => date('c'), 'last_check_error' => 'Invalid releases JSON']);
         exit(1);
@@ -111,10 +111,10 @@ function runCheck(array $settings): void
         'last_check'       => date('c'),
         'last_check_error' => null,
         'available'        => [
-            'version'  => $version,
-            'url'      => $url,
-            'md5'      => $md5,
-            'sha256'   => $sha256,
+            'version' => $version,
+            'url'     => $url,
+            'md5'     => $md5,
+            'sha256'  => $sha256,
         ],
     ];
 
@@ -153,10 +153,10 @@ function runCheck(array $settings): void
 /** @param array<string,mixed> $settings */
 function runInstall(array $settings): void
 {
-    $state = Settings::fullState();
+    $state  = Settings::fullState();
     $staged = $state['staged'] ?? null;
 
-    if (!is_array($staged)) {
+    if ( ! is_array($staged)) {
         logMessage('No staged update available; nothing to install.');
         exit(0);
     }
@@ -164,14 +164,14 @@ function runInstall(array $settings): void
     $version = Settings::string($staged, 'version', '');
     $file    = Settings::string($staged, 'file', '');
 
-    if ($version === '' || $file === '' || !is_file($file)) {
+    if ($version === '' || $file === '' || ! is_file($file)) {
         logMessage('Staged update record is invalid or file is missing.');
         Settings::updateState(['staged' => null, 'last_install_error' => 'Staged file missing']);
         exit(1);
     }
 
     $installed = Settings::installedVersion();
-    if ($installed !== '' && !Versions::isNewer($version, $installed)) {
+    if ($installed !== '' && ! Versions::isNewer($version, $installed)) {
         logMessage("Installed version {$installed} is already up to date; clearing staged {$version}.");
         Settings::updateState(['staged' => null]);
         exit(0);
@@ -189,11 +189,11 @@ function runInstall(array $settings): void
     $autoReboot = (bool)($settings['auto_reboot'] ?? false);
 
     Settings::updateState([
-        'staged'         => null,
-        'available'      => null,
-        'last_install'   => ['version' => $version, 'installed_at' => date('c')],
+        'staged'             => null,
+        'available'          => null,
+        'last_install'       => ['version' => $version, 'installed_at' => date('c')],
         'last_install_error' => null,
-        'pending_reboot' => $autoReboot,
+        'pending_reboot'     => $autoReboot,
     ]);
 
     logMessage("Update {$version} installed successfully.");
@@ -215,13 +215,13 @@ function runInstall(array $settings): void
 
 function stageUpdate(string $version, string $url, string $md5, string $sha256): ?string
 {
-    if (!preg_match('#^https://#i', $url)) {
+    if ( ! preg_match('#^https://#i', $url)) {
         logMessage('ERROR: Release URL is not HTTPS.');
         return null;
     }
 
     $host = parse_url($url, PHP_URL_HOST);
-    if (!is_string($host) || $host === '' || !str_ends_with($host, ALLOWED_HOST_SUFFIX)) {
+    if ( ! is_string($host) || $host === '' || ! str_ends_with($host, ALLOWED_HOST_SUFFIX)) {
         logMessage("ERROR: Release URL host '{$host}' is not an authorized Unraid download server.");
         return null;
     }
@@ -241,13 +241,13 @@ function stageUpdate(string $version, string $url, string $md5, string $sha256):
     logMessage("Downloading to {$tmpFile}");
     $cmd = sprintf('wget -q -O %s %s', escapeshellarg($tmpFile), escapeshellarg($url));
     exec($cmd, $out, $rc);
-    if ($rc !== 0 || !is_file($tmpFile) || filesize($tmpFile) === 0) {
+    if ($rc !== 0 || ! is_file($tmpFile) || filesize($tmpFile) === 0) {
         logMessage('ERROR: Download failed or file is empty.');
         @unlink($tmpFile);
         return null;
     }
 
-    if (!isVerified($tmpFile, $md5, $sha256)) {
+    if ( ! isVerified($tmpFile, $md5, $sha256)) {
         logMessage('ERROR: Checksum verification failed.');
         @unlink($tmpFile);
         return null;
@@ -289,62 +289,62 @@ function installStagedFile(string $file, string $version): int
     $bootDir = is_string($bootDir) && $bootDir !== '' ? $bootDir : '/boot';
 
     $script = <<<'BASH'
-#!/bin/bash
-set -o pipefail
-ZIP="$1"
-WORKDIR="/tmp/updater-install"
-BOOT_DIR="${UPDATER_BOOT_DIR:-/boot}"
-PREVIOUS_DIR="$BOOT_DIR/previous"
+        #!/bin/bash
+        set -o pipefail
+        ZIP="$1"
+        WORKDIR="/tmp/updater-install"
+        BOOT_DIR="${UPDATER_BOOT_DIR:-/boot}"
+        PREVIOUS_DIR="$BOOT_DIR/previous"
 
-rm -rf "$WORKDIR"
-mkdir -p "$WORKDIR"
+        rm -rf "$WORKDIR"
+        mkdir -p "$WORKDIR"
 
-echo "=== Unraid OS Auto-Update ==="
-date
-echo "Source: $ZIP"
-echo "Target boot directory: $BOOT_DIR"
-echo ""
+        echo "=== Unraid OS Auto-Update ==="
+        date
+        echo "Source: $ZIP"
+        echo "Target boot directory: $BOOT_DIR"
+        echo ""
 
-echo "[1/4] Extracting package"
-unzip -o -d "$WORKDIR/unraid_install" "$ZIP"
-if [[ $? -ne 0 ]] || [[ ! -s "$WORKDIR/unraid_install/bzroot" ]]; then
-    echo "ERROR: Extraction failed or bzroot not found."
-    echo "FAILED"
-    exit 1
-fi
-echo ""
+        echo "[1/4] Extracting package"
+        unzip -o -d "$WORKDIR/unraid_install" "$ZIP"
+        if [[ $? -ne 0 ]] || [[ ! -s "$WORKDIR/unraid_install/bzroot" ]]; then
+            echo "ERROR: Extraction failed or bzroot not found."
+            echo "FAILED"
+            exit 1
+        fi
+        echo ""
 
-echo "[2/4] Backing up current boot files to $PREVIOUS_DIR"
-mkdir -p "$PREVIOUS_DIR"
-for f in "$BOOT_DIR"/bz*; do
-    [[ -f "$f" ]] && mv -f "$f" "$PREVIOUS_DIR/"
-done
-[[ -f "$BOOT_DIR/changes.txt" ]] && mv -f "$BOOT_DIR/changes.txt" "$PREVIOUS_DIR/"
-echo ""
+        echo "[2/4] Backing up current boot files to $PREVIOUS_DIR"
+        mkdir -p "$PREVIOUS_DIR"
+        for f in "$BOOT_DIR"/bz*; do
+            [[ -f "$f" ]] && mv -f "$f" "$PREVIOUS_DIR/"
+        done
+        [[ -f "$BOOT_DIR/changes.txt" ]] && mv -f "$BOOT_DIR/changes.txt" "$PREVIOUS_DIR/"
+        echo ""
 
-echo "[3/4] Installing new boot files"
-for f in "$WORKDIR/unraid_install/bz"*; do
-    [[ -f "$f" ]] && cp -f "$f" "$BOOT_DIR/"
-done
-[[ -f "$WORKDIR/unraid_install/changes.txt" ]] && cp -f "$WORKDIR/unraid_install/changes.txt" "$BOOT_DIR/"
-echo ""
+        echo "[3/4] Installing new boot files"
+        for f in "$WORKDIR/unraid_install/bz"*; do
+            [[ -f "$f" ]] && cp -f "$f" "$BOOT_DIR/"
+        done
+        [[ -f "$WORKDIR/unraid_install/changes.txt" ]] && cp -f "$WORKDIR/unraid_install/changes.txt" "$BOOT_DIR/"
+        echo ""
 
-echo "[4/4] Syncing boot device"
-sync -f "$BOOT_DIR"
-echo ""
+        echo "[4/4] Syncing boot device"
+        sync -f "$BOOT_DIR"
+        echo ""
 
-echo "--- Update Complete ---"
-echo "Reboot to apply the new Unraid OS version."
-echo "DONE"
-BASH;
+        echo "--- Update Complete ---"
+        echo "Reboot to apply the new Unraid OS version."
+        echo "DONE"
+        BASH;
 
     $scriptFile = '/tmp/updater-auto-install.sh';
     file_put_contents($scriptFile, $script);
     chmod($scriptFile, 0o700);
 
-    $logFile = '/tmp/updater-auto-install.log';
+    $logFile   = '/tmp/updater-auto-install.log';
     $envExport = escapeshellarg($bootDir);
-    $cmd = sprintf(
+    $cmd       = sprintf(
         'UPDATER_BOOT_DIR=%s bash %s %s > %s 2>&1',
         $envExport,
         escapeshellarg($scriptFile),
@@ -371,7 +371,7 @@ function fetchReleases(): ?string
         ],
     ];
 
-    $ctx = stream_context_create($opts);
+    $ctx    = stream_context_create($opts);
     $result = @file_get_contents(RELEASES_URL, false, $ctx);
 
     if ($result === false || $result === '') {
@@ -400,58 +400,58 @@ function branchLabel(string $version): string
 function stopArrayAndReboot(): int
 {
     $script = <<<'BASH'
-#!/bin/bash
-set -o pipefail
+        #!/bin/bash
+        set -o pipefail
 
-VAR_INI="/var/local/emhttp/var.ini"
-MAX_WAIT=600
+        VAR_INI="/var/local/emhttp/var.ini"
+        MAX_WAIT=600
 
-stop_array() {
-    if [[ -x /usr/local/sbin/emcmd ]]; then
-        /usr/local/sbin/emcmd 'cmdStop=Stop' &>/dev/null
-        return 0
-    fi
-    return 1
-}
-
-wait_for_array_stop() {
-    local waited=0
-    while [[ $waited -lt $MAX_WAIT ]]; do
-        if [[ -f "$VAR_INI" ]]; then
-            STATE=$(awk -F'=' '/^mdState=/ {gsub(/[" ]/, "", $2); print $2}' "$VAR_INI")
-            if [[ "$STATE" == "STOPPED" ]]; then
-                echo "Array is stopped."
+        stop_array() {
+            if [[ -x /usr/local/sbin/emcmd ]]; then
+                /usr/local/sbin/emcmd 'cmdStop=Stop' &>/dev/null
                 return 0
             fi
+            return 1
+        }
+
+        wait_for_array_stop() {
+            local waited=0
+            while [[ $waited -lt $MAX_WAIT ]]; do
+                if [[ -f "$VAR_INI" ]]; then
+                    STATE=$(awk -F'=' '/^mdState=/ {gsub(/[" ]/, "", $2); print $2}' "$VAR_INI")
+                    if [[ "$STATE" == "STOPPED" ]]; then
+                        echo "Array is stopped."
+                        return 0
+                    fi
+                fi
+                sleep 5
+                waited=$((waited + 5))
+                echo "Waiting for array to stop... ($waited seconds)"
+            done
+            return 1
+        }
+
+        echo "Stopping array..."
+        if ! stop_array; then
+            echo "ERROR: Could not initiate array stop."
+            exit 1
         fi
-        sleep 5
-        waited=$((waited + 5))
-        echo "Waiting for array to stop... ($waited seconds)"
-    done
-    return 1
-}
 
-echo "Stopping array..."
-if ! stop_array; then
-    echo "ERROR: Could not initiate array stop."
-    exit 1
-fi
+        if ! wait_for_array_stop; then
+            echo "WARNING: Array did not report STOPPED within ${MAX_WAIT}s; proceeding with reboot."
+        fi
 
-if ! wait_for_array_stop; then
-    echo "WARNING: Array did not report STOPPED within ${MAX_WAIT}s; proceeding with reboot."
-fi
-
-echo "Rebooting server..."
-sync
-/sbin/reboot
-BASH;
+        echo "Rebooting server..."
+        sync
+        /sbin/reboot
+        BASH;
 
     $scriptFile = '/tmp/updater-reboot.sh';
     file_put_contents($scriptFile, $script);
     chmod($scriptFile, 0o700);
 
     $logFile = '/tmp/updater-reboot.log';
-    $cmd = sprintf('nohup bash %s > %s 2>&1 &', escapeshellarg($scriptFile), escapeshellarg($logFile));
+    $cmd     = sprintf('nohup bash %s > %s 2>&1 &', escapeshellarg($scriptFile), escapeshellarg($logFile));
     exec($cmd, $out, $rc);
 
     return $rc;
@@ -461,10 +461,10 @@ BASH;
 function acquireLock(): mixed
 {
     $fp = @fopen(LOCK_FILE, 'c');
-    if (!is_resource($fp)) {
+    if ( ! is_resource($fp)) {
         return false;
     }
-    if (!@flock($fp, LOCK_EX | LOCK_NB)) {
+    if ( ! @flock($fp, LOCK_EX | LOCK_NB)) {
         fclose($fp);
         return false;
     }

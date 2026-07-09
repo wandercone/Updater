@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace UnraidUpdater;
 
-
 final class Versions
 {
     /**
@@ -18,7 +17,7 @@ final class Versions
         if ($clean === '') {
             return null;
         }
-        if (!preg_match('/^(?:v)?(\d+)\.(\d+)\.(\d+)/i', $clean, $m)) {
+        if ( ! preg_match('/^(?:v)?(\d+)\.(\d+)\.(\d+)/i', $clean, $m)) {
             return null;
         }
         return [(int)$m[1], (int)$m[2], (int)$m[3]];
@@ -88,7 +87,7 @@ final class Versions
         $best = null;
 
         foreach ($releases as $release) {
-            if (!is_array($release)) {
+            if ( ! is_array($release)) {
                 continue;
             }
 
@@ -101,11 +100,11 @@ final class Versions
                 continue;
             }
 
-            if (!self::sameMinorBranch($version, $installed)) {
+            if ( ! self::sameMinorBranch($version, $installed)) {
                 continue;
             }
 
-            if (!self::isNewer($version, $installed)) {
+            if ( ! self::isNewer($version, $installed)) {
                 continue;
             }
 

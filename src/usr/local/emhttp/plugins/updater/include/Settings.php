@@ -6,8 +6,8 @@ namespace UnraidUpdater;
 
 final class Settings
 {
-    private const CONFIG_DIR  = '/boot/config/plugins/updater';
-    private const STATE_FILE  = '/state.json';
+    private const CONFIG_DIR = '/boot/config/plugins/updater';
+    private const STATE_FILE = '/state.json';
 
     /** @var array<string,mixed> */
     private const DEFAULTS = [
@@ -43,9 +43,9 @@ final class Settings
     {
         self::ensureDir();
 
-        $state = self::loadFullState();
+        $state             = self::loadFullState();
         $state['settings'] = array_merge(self::loadSettings(), $settings);
-        self::$cache = $state['settings'];
+        self::$cache       = $state['settings'];
 
         $encoded = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
@@ -53,7 +53,7 @@ final class Settings
         }
 
         $stateFile = self::statePath();
-        $tmp = $stateFile . '.tmp';
+        $tmp       = $stateFile . '.tmp';
         if (file_put_contents($tmp, $encoded) === false) {
             throw new \RuntimeException('Failed to write updater state.');
         }
@@ -79,7 +79,7 @@ final class Settings
         }
 
         $stateFile = self::statePath();
-        $tmp = $stateFile . '.tmp';
+        $tmp       = $stateFile . '.tmp';
         if (file_put_contents($tmp, $encoded) === false) {
             throw new \RuntimeException('Failed to write updater state.');
         }
@@ -123,7 +123,7 @@ final class Settings
     public static function ensureDir(): void
     {
         $dir = self::configDir();
-        if (!is_dir($dir)) {
+        if ( ! is_dir($dir)) {
             @mkdir($dir, 0o755, true);
         }
     }
@@ -167,7 +167,7 @@ final class Settings
     public static function validateCron(string $expression): bool
     {
         $fields = preg_split('/\s+/', trim($expression));
-        if (!is_array($fields) || count($fields) !== 5) {
+        if ( ! is_array($fields) || count($fields) !== 5) {
             return false;
         }
 
@@ -180,7 +180,7 @@ final class Settings
         ];
 
         foreach ($fields as $i => $field) {
-            if (!preg_match($patterns[$i], (string)$field)) {
+            if ( ! preg_match($patterns[$i], (string)$field)) {
                 return false;
             }
         }
@@ -188,15 +188,15 @@ final class Settings
         return true;
     }
 
-/**
- * @param array<mixed> $settings
- * @return array{check:string,install:string}
- */
+    /**
+     * @param array<mixed> $settings
+     * @return array{check:string,install:string}
+     */
     public static function buildCronExpression(array $settings): array
     {
-        $parts = self::parseTime(self::string($settings, 'check_time', '02:00'));
+        $parts     = self::parseTime(self::string($settings, 'check_time', '02:00'));
         $checkFreq = self::string($settings, 'check_frequency', 'daily');
-        $checkDay = max(0, min(6, self::int($settings, 'check_day', 0)));
+        $checkDay  = max(0, min(6, self::int($settings, 'check_day', 0)));
 
         $checkCron = match ($checkFreq) {
             'daily'   => "{$parts['m']} {$parts['h']} * * *",
@@ -210,9 +210,9 @@ final class Settings
         $day          = max(0, min(6, self::int($settings, 'install_window_day', 0)));
 
         $installCron = match ($installFreq) {
-            'daily'   => "{$installParts['m']} {$installParts['h']} * * *",
-            'weekly'  => "{$installParts['m']} {$installParts['h']} * * {$day}",
-            default   => self::string($settings, 'install_cron', '0 3 * * 0'),
+            'daily'  => "{$installParts['m']} {$installParts['h']} * * *",
+            'weekly' => "{$installParts['m']} {$installParts['h']} * * {$day}",
+            default  => self::string($settings, 'install_cron', '0 3 * * 0'),
         };
 
         return ['check' => $checkCron, 'install' => $installCron];
@@ -256,8 +256,8 @@ final class Settings
     /** @return array<string,mixed> */
     private static function loadFullState(): array
     {
-        $raw = self::readRaw();
-        $saved = self::toArray($raw['settings'] ?? []);
+        $raw             = self::readRaw();
+        $saved           = self::toArray($raw['settings'] ?? []);
         $raw['settings'] = array_merge(self::DEFAULTS, $saved);
         return $raw;
     }
@@ -266,7 +266,7 @@ final class Settings
     private static function readRaw(): array
     {
         $stateFile = self::statePath();
-        if (!is_file($stateFile)) {
+        if ( ! is_file($stateFile)) {
             return [];
         }
 
@@ -276,7 +276,7 @@ final class Settings
         }
 
         $decoded = json_decode($contents, true);
-        if (!is_array($decoded)) {
+        if ( ! is_array($decoded)) {
             return [];
         }
 
@@ -289,12 +289,12 @@ final class Settings
     {
         self::ensureDir();
 
-        $enabled   = (bool)($settings['enabled'] ?? false);
-        $autoMode  = self::string($settings, 'auto_mode', 'check_only');
-        $cronExpr  = self::buildCronExpression($settings);
+        $enabled  = (bool)($settings['enabled'] ?? false);
+        $autoMode = self::string($settings, 'auto_mode', 'check_only');
+        $cronExpr = self::buildCronExpression($settings);
 
-        $php = self::phpBinary();
-        $checkScript = '/usr/local/emhttp/plugins/updater/include/cron.php';
+        $php           = self::phpBinary();
+        $checkScript   = '/usr/local/emhttp/plugins/updater/include/cron.php';
         $installScript = '/usr/local/emhttp/plugins/updater/include/cron.php install';
 
         $lines = [
@@ -310,9 +310,9 @@ final class Settings
             }
         }
 
-        $content = implode("\n", $lines) . "\n\n";
+        $content  = implode("\n", $lines) . "\n\n";
         $cronFile = self::systemCronFile();
-        $tmp = $cronFile . '.tmp';
+        $tmp      = $cronFile . '.tmp';
         file_put_contents($tmp, $content);
         rename($tmp, $cronFile);
         @chmod($cronFile, 0o644);
@@ -331,7 +331,7 @@ final class Settings
     {
         $t = trim($time);
 
-        if (!preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $t, $m)) {
+        if ( ! preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $t, $m)) {
             return ['h' => '2', 'm' => '00'];
         }
 
@@ -347,7 +347,7 @@ final class Settings
     /** @return array<string,mixed> */
     private static function toArray(mixed $value): array
     {
-        if (!is_array($value)) {
+        if ( ! is_array($value)) {
             return [];
         }
 
