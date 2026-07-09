@@ -4,7 +4,7 @@
 <PLUGIN
   name="updater"
   author="wandercone"
-  version="2026.07.09"
+  version="2026.07.09.01"
   launch="Tools/Updater"
   pluginURL="https://raw.githubusercontent.com/wandercone/Updater/main/plugin/updater.plg"
   support="https://github.com/wandercone/Updater/issues"
@@ -16,6 +16,10 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.07.09.01
+
+chore: add icon
+
 ### 2026.07.09
 
 feat: automatic patch updates
@@ -24,18 +28,14 @@ feat: automatic patch updates
 
 fix: all aboard the struggle-bus of "it worked when i tested it"
 
-### 2026.05.29
-
-fix: just can't win with CSRF but this seems to work stable-ish
-
 
 For older releases, see https://github.com/wandercone/Updater/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/updater/updater-2026.07.09-noarch-1.txz">
-<URL>https://github.com/wandercone/Updater/releases/download/2026.07.09/updater-2026.07.09-noarch-1.txz</URL>
-<SHA256>cd9975203635e84586af6597b78fd25728c233afbf70129b098c3a4a36267723</SHA256>
+<FILE Name="/boot/config/plugins/updater/updater-2026.07.09.01-noarch-1.txz">
+<URL>https://github.com/wandercone/Updater/releases/download/2026.07.09.01/updater-2026.07.09.01-noarch-1.txz</URL>
+<SHA256>5636ee4c5b355406a6f167c0ae2a4235e486e1940072cd663c761fca2dbf84af</SHA256>
 </FILE>
 
 <FILE Name="/boot/config/plugins/updater/updater.cron">
@@ -51,10 +51,10 @@ The 'install' script.
 <FILE Run="/bin/bash">
 <INLINE>
 <![CDATA[
-upgradepkg --install-new /boot/config/plugins/updater/updater-2026.07.09-noarch-1.txz
+upgradepkg --install-new /boot/config/plugins/updater/updater-2026.07.09.01-noarch-1.txz
 
 # cleanup old versions
-rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.07.09')
+rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '2026.07.09.01')
 
 # regenerate the plugin-owned cron file from saved state (also recreates it on boot)
 /usr/bin/php /usr/local/emhttp/plugins/updater/include/cron.php --install-cron 2>/dev/null || true
@@ -65,7 +65,7 @@ rm -f $(ls /boot/config/plugins/updater/updater-*.txz 2>/dev/null | grep -v '202
 echo ""
 echo "----------------------------------------------------"
 echo " updater has been installed."
-echo " Version: 2026.07.09"
+echo " Version: 2026.07.09.01"
 echo "----------------------------------------------------"
 echo ""
 ]]>
